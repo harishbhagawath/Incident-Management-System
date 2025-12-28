@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Role Incident Management System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* Glassmorphism Classes */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .glass-dark {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast-enter {
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Tab styles */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        .tab-button.active { color: #0d9488; border-color: #0d9488; }
+        
+        /* Map styles */
+        #userMap { height: 350px; width: 100%; border-radius: 0.75rem; z-index: 1; }
+        #responderMap { height: 550px; width: 100%; border-radius: 0.75rem; z-index: 1; }
+        #publicMap { height: 500px; width: 100%; border-radius: 0.75rem; z-index: 1; }
+        
+        /* Modal styles */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .modal-content { background-color: #ffffff; margin: 5% auto; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 550px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); position: relative; animation: fadeIn 0.3s ease-out; }
+        .close { color: #9ca3af; float: right; font-size: 1.5rem; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+        .close:hover { color: #1f2937; }
+        
+        /* Custom File Upload */
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-upload-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        
+        /* Input focus enhancement */
+        .input-enhanced:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+
+        /* Toast Container */
+        #toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 10000; display: flex; flex-direction: column; gap: 0.5rem; }
+        
+        /* Analytics Chart Container */
+        .chart-container {
+            position: relative; 
+            height: 300px; 
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- ========== LANDING PAGE ========== -->
+    <div id="landingPage" class="page min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 text-white relative overflow-hidden">
+        <!-- Background Decor -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+            <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 2s"></div>
+        </div>
+
+        <div class="glass-dark p-10 rounded-3xl shadow-2xl w-full max-w-4xl text-center mx-4 border border-white/10 animate-fade-in">
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-teal-500/20 mb-4 ring-4 ring-teal-500/10">
+                    <i class="fas fa-shield-alt text-4xl text-teal-400"></i>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-teal-200 to-blue-200">Incident Management</h1>
+                <p class="text-slate-400 text-lg">Report emergencies and coordinate response in real-time.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <button onclick="showUserAuth()" class="group relative overflow-hidden bg-slate-800 hover:bg-slate-700 p-8 rounded-2xl border border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fas fa-user text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-user text-2xl text-blue-400"></i>
+                        </div>
+                        <h2 class="text-xl font-bold mb-1">Citizen Portal</h2>
+                        <p class="text-sm text-slate-400">Report an incident quickly</p>
+                    </div>
+                </button>
+                
+                <button onclick="showResponderAuth()" class="group relative overflow-hidden bg-slate-800 hover:bg-slate-700 p-8 rounded-2xl border border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fas fa-user-shield text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 rounded-xl bg-teal-500/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-user-shield text-2xl text-teal-400"></i>
+                        </div>
+                        <h2 class="text-xl font-bold mb-1">Responder Portal</h2>
+                        <p class="text-sm text-slate-400">Manage & dispatch teams</p>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="mt-10 pt-6 border-t border-white/10">
+                <button onclick="showPublicIncidents()" class="inline-flex items-center text-slate-400 hover:text-white transition-colors text-sm font-medium">
+                    <span class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mr-2">
+                        <i class="fas fa-eye text-xs"></i>
+                    </span>
+                    View Public Incident Map
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== PUBLIC INCIDENTS PAGE ========== -->
+    <div id="publicIncidentsPage" class="page hidden min-h-screen bg-slate-50">
+        <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <button onclick="showPage('landingPage')" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-600">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">Public Safety Map</h1>
+                        <p class="text-xs text-slate-500">Live view of reported incidents</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 ring-1 ring-red-600/20">
+                        <span class="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span> Live
+                    </span>
+                </div>
+            </div>
+        </header>
+        <main class="container mx-auto p-4 pb-20 max-w-7xl">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Sidebar List -->
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                        <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                            <select id="publicFilterType" class="flex-1 min-w-[120px] bg-slate-50 border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2">
+                                <option value="alltypes">All Types</option>
+                                <option value="fire">Fire</option>
+                                <option value="accident">Accident</option>
+                                <option value="theft">Theft</option>
+                                <option value="utilityissue">Utility</option>
+                            </select>
+                            <select id="publicFilterStatus" class="flex-1 min-w-[120px] bg-slate-50 border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2">
+                                <option value="allstatuses">Status</option>
+                                <option value="OPEN">Open</option>
+                                <option value="IN_PROGRESS">Active</option>
+                                <option value="RESOLVED">Done</option>
+                            </select>
+                        </div>
+                        <div id="publicIncidentList" class="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-1"></div>
+                    </div>
+                </div>
+                <!-- Map Area -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 h-[600px] lg:h-[calc(100vh-140px)] relative">
+                        <div id="publicMap" class="h-full w-full rounded-xl"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========== AUTH PAGES (Login/Register) ========== -->
+    <div id="userLoginPage" class="page hidden min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            <div class="bg-blue-600 p-6 text-center">
+                <i class="fas fa-user-circle text-5xl text-blue-200 mb-2"></i>
+                <h2 class="text-2xl font-bold text-white">Citizen Login</h2>
+            </div>
+            <div class="p-8">
+                <form id="userLoginForm" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Aadhar Number</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-id-card text-slate-400"></i>
+                            </div>
+                            <input type="text" id="loginAadhar" required class="input-enhanced pl-10 block w-full rounded-lg border-slate-300 bg-slate-50 text-slate-900 focus:ring-blue-500 p-2.5 transition-all">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-slate-400"></i>
+                            </div>
+                            <input type="password" id="loginPassword" required class="input-enhanced pl-10 block w-full rounded-lg border-slate-300 bg-slate-50 text-slate-900 focus:ring-blue-500 p-2.5 transition-all">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                        Secure Login
+                    </button>
+                </form>
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-slate-600">New here? <a href="#" onclick="showPage('userRegisterPage')" class="font-semibold text-blue-600 hover:text-blue-700">Create Account</a></p>
+                    <button onclick="showPage('landingPage')" class="mt-6 text-sm text-slate-400 hover:text-slate-600 flex items-center justify-center w-full">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Home
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="userRegisterPage" class="page hidden min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            <div class="bg-blue-600 p-6 text-center">
+                <h2 class="text-2xl font-bold text-white">Citizen Registration</h2>
+            </div>
+            <div class="p-8">
+                <form id="userRegisterForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Aadhar Number</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="regAadhar" required pattern="[0-9]{12}" class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                            <button type="button" id="sendOtpBtn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 text-sm font-medium transition-colors">Send OTP</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Enter OTP</label>
+                        <input type="text" id="otp" required placeholder="XXXXXX" class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                        <input type="text" id="regName" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                        <input type="tel" id="regPhone" required pattern="[0-9]{10}" class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                            <input type="password" id="regPassword" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Confirm</label>
+                            <input type="password" id="regConfirmPassword" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+                        Register Now
+                    </button>
+                </form>
+                <button onclick="showPage('userLoginPage')" class="mt-6 w-full text-sm text-slate-400 hover:text-slate-600 flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Responder Auth (Similar styling pattern applied) -->
+    <div id="responderLoginPage" class="page hidden min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            <div class="bg-teal-700 p-6 text-center">
+                <i class="fas fa-shield-alt text-5xl text-teal-200 mb-2"></i>
+                <h2 class="text-2xl font-bold text-white">Responder Access</h2>
+            </div>
+            <div class="p-8">
+                <form id="responderLoginForm" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Responder ID</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-id-badge text-slate-400"></i>
+                            </div>
+                            <input type="text" id="responderId" required class="input-enhanced pl-10 block w-full rounded-lg border-slate-300 bg-slate-50 text-slate-900 focus:ring-teal-600 focus:border-teal-600 p-2.5 transition-all">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-slate-400"></i>
+                            </div>
+                            <input type="password" id="responderPassword" required class="input-enhanced pl-10 block w-full rounded-lg border-slate-300 bg-slate-50 text-slate-900 focus:ring-teal-600 focus:border-teal-600 p-2.5 transition-all">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                        Access Dashboard
+                    </button>
+                </form>
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-slate-600">New Responder? <a href="#" onclick="showPage('responderRegisterPage')" class="font-semibold text-teal-700 hover:text-teal-800">Register ID</a></p>
+                    <button onclick="showPage('landingPage')" class="mt-6 text-sm text-slate-400 hover:text-slate-600 flex items-center justify-center w-full">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Home
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="responderRegisterPage" class="page hidden min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            <div class="bg-teal-700 p-6 text-center">
+                <h2 class="text-2xl font-bold text-white">Responder Registration</h2>
+            </div>
+            <div class="p-8">
+                <form id="responderRegisterForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                        <input type="text" id="resRegName" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Official ID</label>
+                        <input type="text" id="resRegId" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Official Mobile</label>
+                        <div class="flex gap-2">
+                            <input type="tel" id="resRegPhone" required pattern="[0-9]{10}" class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                            <button type="button" id="sendResponderOtpBtn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 text-sm font-medium transition-colors">Verify</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">OTP</label>
+                        <input type="text" id="resOtp" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                            <input type="password" id="resRegPassword" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Confirm</label>
+                            <input type="password" id="resRegConfirmPassword" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all">
+                        Register Responder
+                    </button>
+                </form>
+                <button onclick="showPage('responderLoginPage')" class="mt-6 w-full text-sm text-slate-400 hover:text-slate-600 flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== USER DASHBOARD ========== -->
+    <div id="userDashboardPage" class="page hidden min-h-screen bg-slate-50">
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-100 p-2 rounded-lg">
+                        <i class="fas fa-bolt text-blue-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-800 leading-tight">Citizen Reporter</h1>
+                        <p class="text-xs text-slate-500">Report & Track Incidents</p>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <!-- Added ID="user-menu-button" to fix dropdown closing issue -->
+                    <button id="user-menu-button" onclick="toggleProfileDropdown('profileDropdown')" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full transition-all">
+                        <i class="fas fa-user-circle text-slate-400"></i>
+                        <span class="text-sm font-semibold text-slate-700" id="profileUserName"></span>
+                        <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                    </button>
+                    <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50 animate-fade-in">
+                        <div class="px-4 py-2 border-b border-slate-100 mb-1">
+                            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Account</p>
+                            <p class="text-sm font-medium text-slate-800" id="dropdownName"></p>
+                            <p class="text-xs text-slate-500 font-mono" id="dropdownId"></p>
+                        </div>
+                        <button onclick="showProfileModal('user')" class="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2">
+                            <i class="fas fa-cog w-4"></i> Edit Profile
+                        </button>
+                        <button onclick="handleLogout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                            <i class="fas fa-sign-out-alt w-4"></i> Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto p-4 max-w-5xl">
+            <!-- Report Section -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8 animate-fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-blue-500"></i> Report New Incident
+                    </h2>
+                </div>
+                
+                <form id="incidentForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4 md:col-span-1">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Incident Type</label>
+                            <select id="type" required class="input-enhanced block w-full rounded-lg border-slate-300 bg-white p-2.5 focus:ring-blue-500">
+                                <option value="fire">🔥 Fire Outbreak</option>
+                                <option value="accident">🚗 Road Accident</option>
+                                <option value="theft">🥷 Theft / Crime</option>
+                                <option value="utilityissue">💡 Utility Issue</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
+                            <textarea id="description" required rows="3" class="input-enhanced block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 focus:ring-blue-500" placeholder="Describe the situation..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Location</label>
+                            <div class="relative">
+                                <input type="text" id="locationInput" placeholder="Enter address" required class="input-enhanced pl-10 block w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 mb-2">
+                                <i class="fas fa-map-marker-alt absolute left-3 top-3 text-slate-400"></i>
+                            </div>
+                            <button type="button" onclick="getCurrentLocation()" class="w-full py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:border-blue-300 transition-all text-sm flex items-center justify-center gap-2">
+                                <i class="fas fa-crosshairs text-blue-500"></i> Use Current GPS Location
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Pin Location on Map</label>
+                            <div id="userMap" class="shadow-inner bg-slate-100 border border-slate-200"></div>
+                        </div>
+
+                        <!-- Media Upload -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Evidence (Optional)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="cursor-pointer group">
+                                    <input type="file" id="imageUpload" multiple accept="image/*" class="hidden">
+                                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center group-hover:border-blue-400 group-hover:bg-blue-50 transition-all h-full flex flex-col justify-center">
+                                        <i class="fas fa-camera text-slate-400 group-hover:text-blue-500 mb-1"></i>
+                                        <span class="text-[10px] text-slate-500 font-medium">Image</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="file" id="videoUpload" multiple accept="video/*" class="hidden">
+                                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center group-hover:border-red-400 group-hover:bg-red-50 transition-all h-full flex flex-col justify-center">
+                                        <i class="fas fa-video text-slate-400 group-hover:text-red-500 mb-1"></i>
+                                        <span class="text-[10px] text-slate-500 font-medium">Video</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="file" id="audioUpload" multiple accept="audio/*,.pdf,.doc,.docx" class="hidden">
+                                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center group-hover:border-green-400 group-hover:bg-green-50 transition-all h-full flex flex-col justify-center">
+                                        <i class="fas fa-paperclip text-slate-400 group-hover:text-green-500 mb-1"></i>
+                                        <span class="text-[10px] text-slate-500 font-medium">Other</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="md:col-span-2 pt-2">
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-95">
+                            Submit Emergency Report
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="animate-fade-in">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">My History</h3>
+                <div id="userIncidentList" class="space-y-3"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ========== RESPONDER DASHBOARD ========== -->
+    <div id="responderDashboardPage" class="page hidden min-h-screen bg-slate-50 flex flex-col h-screen overflow-hidden">
+        <header class="bg-white border-b border-slate-200 z-40">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-teal-100 p-2 rounded-lg">
+                        <i class="fas fa-headset text-teal-700 text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-800">Command Center</h1>
+                        <p class="text-xs text-teal-600 font-medium">Responder Dashboard</p>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <!-- Added ID="responder-menu-button" to fix dropdown closing issue -->
+                    <button id="responder-menu-button" onclick="toggleProfileDropdown('responderProfileDropdown')" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full transition-all">
+                        <div class="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <span class="text-sm font-semibold text-slate-700" id="responderProfileUserName"></span>
+                        <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                    </button>
+                    <div id="responderProfileDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50 animate-fade-in">
+                        <div class="px-4 py-2 border-b border-slate-100 mb-1">
+                            <p class="text-xs text-slate-500 uppercase font-bold">Officer Info</p>
+                            <p class="text-sm font-medium text-slate-800" id="responderDropdownName"></p>
+                            <div class="flex items-center gap-1 mt-1">
+                                <i class="fas fa-id-badge text-[10px] text-slate-400"></i>
+                                <p class="text-xs text-slate-500 font-mono" id="responderDropdownId"></p>
+                            </div>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <i class="fas fa-shield-alt text-[10px] text-slate-400"></i>
+                                <p class="text-xs text-slate-500 font-mono" id="responderDropdownBadge"></p>
+                            </div>
+                        </div>
+                        <button onclick="showProfileModal('responder')" class="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2">
+                            <i class="fas fa-user-cog w-4"></i> Manage Profile
+                        </button>
+                        <button onclick="handleLogout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                            <i class="fas fa-sign-out-alt w-4"></i> Log Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Tabs -->
+            <div class="container mx-auto px-4">
+                <div class="flex space-x-6 overflow-x-auto">
+                    <button onclick="showResponderTab('liveDashboard')" class="tab-button active py-3 px-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-teal-600 whitespace-nowrap transition-colors" id="liveDashboardTab">
+                        <i class="fas fa-stream mr-2"></i>Live Feed
+                    </button>
+                    <button onclick="showResponderTab('map')" class="tab-button py-3 px-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-teal-600 whitespace-nowrap transition-colors" id="mapTab">
+                        <i class="fas fa-map-marked-alt mr-2"></i>Tactical Map
+                    </button>
+                    <button onclick="showResponderTab('analytics')" class="tab-button py-3 px-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-teal-600 whitespace-nowrap transition-colors" id="analyticsTab">
+                        <i class="fas fa-chart-pie mr-2"></i>Analytics
+                    </button>
+                    <button onclick="showResponderTab('reports')" class="tab-button py-3 px-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-teal-600 whitespace-nowrap transition-colors" id="reportsTab">
+                        <i class="fas fa-file-invoice mr-2"></i>Reports
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-hidden relative">
+            <!-- Live Dashboard Tab -->
+            <div id="liveDashboard" class="tab-content active absolute inset-0 overflow-y-auto bg-slate-50 p-4">
+                <div class="container mx-auto max-w-6xl">
+                    <!-- Filters Bar -->
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 mb-4 flex flex-wrap gap-3 items-center sticky top-0 z-10">
+                        <div class="relative flex-1 min-w-[150px]">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                            <input type="text" id="placeFilter" placeholder="Search location..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                        </div>
+                        <select id="filterType" class="bg-slate-50 border border-slate-200 rounded-lg text-sm py-2 px-3 focus:outline-none">
+                            <option value="alltypes">All Types</option>
+                            <option value="fire">Fire</option>
+                            <option value="accident">Accident</option>
+                            <option value="theft">Theft</option>
+                            <option value="utilityissue">Utility</option>
+                        </select>
+                        <select id="filterStatus" class="bg-slate-50 border border-slate-200 rounded-lg text-sm py-2 px-3 focus:outline-none">
+                            <option value="allstatuses">All Statuses</option>
+                            <option value="OPEN">Open</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                        </select>
+                        <input type="date" id="dateFilter" class="bg-slate-50 border border-slate-200 rounded-lg text-sm py-2 px-3 focus:outline-none">
+                    </div>
+
+                    <div id="responderIncidentList" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Map Tab -->
+            <div id="map" class="tab-content absolute inset-0 bg-slate-100">
+                <div class="absolute top-4 left-4 z-[1000] bg-white p-3 rounded-lg shadow-md border border-slate-200 flex flex-col gap-2 w-64">
+                    <h3 class="font-bold text-xs text-slate-500 uppercase">Map Filters</h3>
+                    <select id="mapFilterType" class="bg-slate-50 border border-slate-200 rounded-lg text-xs py-1.5 px-2">
+                        <option value="alltypes">All Types</option>
+                        <option value="fire">Fire</option>
+                        <option value="accident">Accident</option>
+                        <option value="theft">Theft</option>
+                        <option value="utilityissue">Utility</option>
+                    </select>
+                    <select id="mapFilterStatus" class="bg-slate-50 border border-slate-200 rounded-lg text-xs py-1.5 px-2">
+                        <option value="allstatuses">All Statuses</option>
+                        <option value="OPEN">Open</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                    </select>
+                    <button onclick="applyMapFilters()" class="mt-1 bg-teal-600 text-white text-xs font-bold py-1.5 rounded hover:bg-teal-700 transition-colors">
+                        Update Map
+                    </button>
+                </div>
+                <div id="responderMap" class="w-full h-full"></div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics" class="tab-content absolute inset-0 overflow-y-auto bg-slate-50 p-6">
+                <div class="container mx-auto max-w-7xl space-y-6">
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Total Incidents</p>
+                                <h3 class="text-3xl font-bold text-slate-800 mt-1" id="kpiTotal">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+                                <i class="fas fa-clipboard-list text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Active Cases</p>
+                                <h3 class="text-3xl font-bold text-teal-600 mt-1" id="kpiActive">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center text-teal-600">
+                                <i class="fas fa-spinner text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Critical Fire Alerts</p>
+                                <h3 class="text-3xl font-bold text-red-600 mt-1" id="kpiFire">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600">
+                                <i class="fas fa-fire text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Type Distribution -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h4 class="font-bold text-slate-800 mb-4">Incidents by Type</h4>
+                            <div class="chart-container">
+                                <canvas id="typeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Status Breakdown -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h4 class="font-bold text-slate-800 mb-4">Status Overview</h4>
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Trend Over Time -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
+                            <h4 class="font-bold text-slate-800 mb-4">Incident Volume (Last 24 Hours)</h4>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports" class="tab-content absolute inset-0 overflow-y-auto bg-slate-50 p-6">
+                <div class="container mx-auto max-w-6xl bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
+                        <h3 class="font-bold text-slate-700">Incident Report Log</h3>
+                        <div class="flex gap-2">
+                            <input type="date" id="reportDateFrom" class="bg-white border border-slate-200 rounded-lg text-xs py-1.5 px-2">
+                            <input type="date" id="reportDateTo" class="bg-white border border-slate-200 rounded-lg text-xs py-1.5 px-2">
+                            <select id="reportTypeFilter" class="bg-white border border-slate-200 rounded-lg text-xs py-1.5 px-2">
+                                <option value="alltypes">All Types</option>
+                                <option value="fire">Fire</option>
+                                <option value="accident">Accident</option>
+                                <option value="theft">Theft</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-500">
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-3">ID</th>
+                                    <th class="px-6 py-3">Date</th>
+                                    <th class="px-6 py-3">Type</th>
+                                    <th class="px-6 py-3">Status</th>
+                                    <th class="px-6 py-3">Reporter</th>
+                                    <th class="px-6 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========== MODALS ========== -->
+    
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800" id="profileModalTitle">Profile Settings</h3>
+                <button onclick="closeProfileModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
+                    <i class="fas fa-times text-slate-400"></i>
+                </button>
+            </div>
+            <form id="profileModalForm" class="space-y-4">
+                <div id="userProfileFields" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Aadhar Number</label>
+                        <input type="text" id="modalProfileAadhar" disabled class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Full Name</label>
+                        <input type="text" id="modalProfileName" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Phone Number</label>
+                        <input type="tel" id="modalProfilePhone" required pattern="[0-9]{10}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">New Password</label>
+                        <input type="password" id="modalProfilePassword" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                    </div>
+                </div>
+                
+                <div id="responderProfileFields" class="hidden">
+                    <div class="bg-teal-50 p-4 rounded-xl mb-4 border border-teal-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-teal-200 flex items-center justify-center text-teal-700 font-bold text-xl">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Officer Details</h4>
+                                <p class="text-xs text-slate-500">Update your assignment info below.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700">Full Name</label>
+                            <input type="text" id="modalProfileResponderName" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Responder ID</label>
+                            <input type="text" id="modalProfileResponderId" disabled class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Badge Number</label>
+                            <input type="text" id="modalProfileBadge" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700">Official Mobile</label>
+                            <input type="tel" id="modalProfileResponderPhone" required pattern="[0-9]{10}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700">Assigned Station / Department</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-building text-slate-400"></i>
+                                </div>
+                                <input type="text" id="modalProfileStation" required class="mt-1 pl-10 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced" placeholder="e.g. Fire Station 5">
+                            </div>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700">New Password</label>
+                            <input type="password" id="modalProfileResponderPassword" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg input-enhanced">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                    <button type="button" onclick="closeProfileModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancel</button>
+                    <button type="submit" class="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold shadow-md transition-all">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- TOAST NOTIFICATION SYSTEM ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-800';
+            let iconClass = 'fa-info-circle';
+            
+            if (type === 'success') { bgClass = 'bg-teal-600'; iconClass = 'fa-check-circle'; }
+            if (type === 'error') { bgClass = 'bg-red-500'; iconClass = 'fa-exclamation-circle'; }
+            if (type === 'warning') { bgClass = 'bg-amber-500'; iconClass = 'fa-exclamation-triangle'; }
+
+            toast.className = `toast-enter flex items-center w-full max-w-xs p-4 space-x-3 text-white ${bgClass} rounded-lg shadow-xl`;
+            toast.innerHTML = `
+                <i class="fas ${iconClass} text-lg"></i>
+                <div class="text-sm font-medium">${message}</div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        // --- MOCK DATABASE & STATE MANAGEMENT ---
+        const DB_KEY = 'multiRoleDB';
+        const SESSION_KEY = 'multiRoleSession';
+        let db = { users: [], responders: [], incidents: [] };
+        let currentUser = null;
+        let userRole = null;
+        let mediaFiles = [];
+        let userMap = null;
+        let responderMap = null;
+        let publicMap = null;
+        let marker = null;
+        let currentLocation = null;
+        let responderMarkers = [];
+        
+        // Chart Instances
+        let typeChartInstance = null;
+        let statusChartInstance = null;
+        let trendChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDB();
+            checkSession();
+            attachEventListeners();
+        });
+
+        function loadDB() {
+            const storedDB = localStorage.getItem(DB_KEY);
+            if (storedDB) db = JSON.parse(storedDB);
+            else { 
+                // Updated default responder with new fields
+                db.responders = [{ 
+                    userId: 'admin', 
+                    password: 'admin123', 
+                    name: 'Admin User', 
+                    phone: '0000000000',
+                    badgeNumber: 'B-001',
+                    station: 'Central Command'
+                }];
+                // Expanded mock data for analytics
+                db.incidents = [
+                    { id: 'inc_1234567890', type: 'fire', description: 'Fire reported in downtown market', location: '123 Main Street, City Center', coordinates: { lat: 28.6139, lng: 77.2090 }, createdAt: new Date(Date.now() - 86400000).toISOString(), status: 'RESOLVED', reportedBy: '123456789012', notified: { police: true, ambulance: false, firestation: true }, media: [] },
+                    { id: 'inc_1234567891', type: 'accident', description: 'Two vehicle collision on highway', location: 'Highway 101, Mile 42', coordinates: { lat: 28.6239, lng: 77.2190 }, createdAt: new Date(Date.now() - 3600000).toISOString(), status: 'IN_PROGRESS', reportedBy: '123456789013', notified: { police: true, ambulance: true, firestation: false }, media: [] },
+                    { id: 'inc_1234567892', type: 'theft', description: 'Snatching near park gate', location: 'Central Park Gate 2', coordinates: { lat: 28.6039, lng: 77.1990 }, createdAt: new Date().toISOString(), status: 'OPEN', reportedBy: '123456789014', notified: { police: false, ambulance: false, firestation: false }, media: [] },
+                    { id: 'inc_1234567893', type: 'utilityissue', description: 'Power line down', location: 'Sector 4', coordinates: { lat: 28.6050, lng: 77.2050 }, createdAt: new Date(Date.now() - 7200000).toISOString(), status: 'RESOLVED', reportedBy: '123456789015', notified: { police: true, ambulance: false, firestation: false }, media: [] }
+                ];
+                saveDB(); 
+            }
+        }
+        function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+        function checkSession() {
+            const session = sessionStorage.getItem(SESSION_KEY);
+            if (session) {
+                const sessionData = JSON.parse(session);
+                currentUser = sessionData.user;
+                userRole = sessionData.role;
+                showDashboard();
+            } else showPage('landingPage');
+        }
+        
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            setTimeout(() => {
+                if(userMap) userMap.invalidateSize();
+                if(responderMap) responderMap.invalidateSize();
+                if(publicMap) publicMap.invalidateSize();
+            }, 100);
+
+            if (pageId === 'userDashboardPage') {
+                renderUserIncidents();
+                initUserMap();
+            }
+            if (pageId === 'responderDashboardPage') {
+                renderResponderIncidents();
+            }
+            if (pageId === 'publicIncidentsPage') {
+                renderPublicIncidents();
+                initPublicMap();
+            }
+        }
+        
+        function showUserAuth() { showPage('userLoginPage'); }
+        function showResponderAuth() { showPage('responderLoginPage'); }
+        function showPublicIncidents() { showPage('publicIncidentsPage'); }
+        
+        function showDashboard() {
+            if (userRole === 'user') {
+                document.getElementById('profileUserName').textContent = currentUser.name;
+                document.getElementById('dropdownName').textContent = currentUser.name;
+                document.getElementById('dropdownId').textContent = currentUser.aadhar;
+                showPage('userDashboardPage');
+            } else if (userRole === 'responder') {
+                document.getElementById('responderProfileUserName').textContent = currentUser.name;
+                document.getElementById('responderDropdownName').textContent = currentUser.name;
+                document.getElementById('responderDropdownId').textContent = currentUser.userId;
+                // Show badge number if it exists
+                document.getElementById('responderDropdownBadge').textContent = currentUser.badgeNumber || 'No Badge';
+                showPage('responderDashboardPage');
+            }
+        }
+        
+        function attachEventListeners() {
+            document.getElementById('userLoginForm').addEventListener('submit', handleUserLogin);
+            document.getElementById('userRegisterForm').addEventListener('submit', handleUserRegistration);
+            document.getElementById('sendOtpBtn').addEventListener('click', handleSendOtp);
+            document.getElementById('responderLoginForm').addEventListener('submit', handleResponderLogin);
+            document.getElementById('responderRegisterForm').addEventListener('submit', handleResponderRegistration);
+            document.getElementById('sendResponderOtpBtn').addEventListener('click', handleSendResponderOtp);
+            document.getElementById('incidentForm').addEventListener('submit', handleIncidentSubmit);
+            document.getElementById('imageUpload').addEventListener('change', handleImageSelect);
+            document.getElementById('videoUpload').addEventListener('change', handleVideoSelect);
+            document.getElementById('audioUpload').addEventListener('change', handleAudioSelect);
+            document.getElementById('profileModalForm').addEventListener('submit', handleProfileUpdate);
+            
+            document.getElementById('filterType').addEventListener('change', renderResponderIncidents);
+            document.getElementById('filterStatus').addEventListener('change', renderResponderIncidents);
+            document.getElementById('dateFilter').addEventListener('change', renderResponderIncidents);
+            document.getElementById('placeFilter').addEventListener('input', renderResponderIncidents);
+            
+            document.getElementById('reportDateFrom').addEventListener('change', renderResponderReports);
+            document.getElementById('reportDateTo').addEventListener('change', renderResponderReports);
+            document.getElementById('reportTypeFilter').addEventListener('change', renderResponderReports);
+
+            // FIX: Added listeners for Public Incidents Filters
+            document.getElementById('publicFilterType').addEventListener('change', () => {
+                renderPublicIncidents();
+                initPublicMap(); // Re-render map to apply filters
+            });
+            document.getElementById('publicFilterStatus').addEventListener('change', () => {
+                renderPublicIncidents();
+                initPublicMap(); // Re-render map to apply filters
+            });
+        }
+
+        // --- AUTHENTICATION LOGIC ---
+        let generatedOtp = null, generatedResponderOtp = null;
+        function handleSendOtp() { generatedOtp = '123456'; showToast(`OTP Sent: ${generatedOtp}`, 'success'); }
+        function handleSendResponderOtp() { generatedResponderOtp = '654321'; showToast(`OTP Sent to Mobile: ${generatedResponderOtp}`, 'success'); }
+        
+        function handleUserRegistration(e) { 
+            e.preventDefault(); 
+            if(document.getElementById('otp').value !== generatedOtp) { showToast('Invalid OTP.', 'error'); return; } 
+            if(document.getElementById('regPassword').value !== document.getElementById('regConfirmPassword').value) { showToast('Passwords do not match.', 'error'); return; } 
+            db.users.push({ aadhar: document.getElementById('regAadhar').value, name: document.getElementById('regName').value, phone: document.getElementById('regPhone').value, password: document.getElementById('regPassword').value }); 
+            saveDB(); 
+            showToast('Registration successful!', 'success'); 
+            showPage('userLoginPage'); 
+        }
+        
+        function handleUserLogin(e) { 
+            e.preventDefault(); 
+            const aadhar = document.getElementById('loginAadhar').value, password = document.getElementById('loginPassword').value; 
+            const user = db.users.find(u => u.aadhar === aadhar && u.password === password); 
+            if (user) { 
+                currentUser = { name: user.name, aadhar: user.aadhar }; 
+                userRole = 'user'; 
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: currentUser, role: userRole })); 
+                showToast(`Welcome back, ${user.name}`, 'success'); 
+                showDashboard(); 
+            } else showToast('Invalid credentials.', 'error'); 
+        }
+        
+        function handleResponderRegistration(e) { 
+            e.preventDefault(); 
+            if(document.getElementById('resOtp').value !== generatedResponderOtp) { showToast('Invalid OTP.', 'error'); return; } 
+            if(document.getElementById('resRegPassword').value !== document.getElementById('resRegConfirmPassword').value) { showToast('Passwords do not match.', 'error'); return; } 
+            // Adding default values for new fields
+            db.responders.push({ 
+                userId: document.getElementById('resRegId').value, 
+                password: document.getElementById('resRegPassword').value, 
+                name: document.getElementById('resRegName').value, 
+                phone: document.getElementById('resRegPhone').value,
+                badgeNumber: 'NEW',
+                station: 'HQ'
+            }); 
+            saveDB(); 
+            showToast('Responder Registration successful!', 'success'); 
+            showPage('responderLoginPage'); 
+        }
+        
+        function handleResponderLogin(e) { 
+            e.preventDefault(); 
+            const userId = document.getElementById('responderId').value, password = document.getElementById('responderPassword').value; 
+            const responder = db.responders.find(r => r.userId === userId && r.password === password); 
+            if (responder) { 
+                // FIXED: Ensure badgeNumber and station are included in currentUser session
+                currentUser = { 
+                    name: responder.name, 
+                    userId: responder.userId,
+                    badgeNumber: responder.badgeNumber || 'N/A',
+                    station: responder.station || 'Unassigned'
+                }; 
+                userRole = 'responder'; 
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: currentUser, role: userRole })); 
+                showToast(`Responder Access Granted`, 'success'); 
+                showDashboard(); 
+            } else showToast('Invalid credentials.', 'error'); 
+        }
+        
+        function handleLogout() { 
+            sessionStorage.removeItem(SESSION_KEY); 
+            currentUser = null; 
+            userRole = null; 
+            showToast('Logged out successfully', 'info'); 
+            showPage('landingPage'); 
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function handleIncidentSubmit(e) {
+            e.preventDefault();
+            const newIncident = {
+                id: 'inc_' + Date.now(),
+                type: document.getElementById('type').value,
+                description: document.getElementById('description').value,
+                location: document.getElementById('locationInput').value,
+                coordinates: currentLocation || { lat: 28.6139, lng: 77.2090 },
+                createdAt: new Date().toISOString(),
+                status: 'OPEN',
+                reportedBy: currentUser.aadhar,
+                notified: { police: false, ambulance: false, firestation: false },
+                media: mediaFiles
+            };
+            db.incidents.unshift(newIncident);
+            saveDB();
+            document.getElementById('incidentForm').reset();
+            mediaFiles = [];
+            currentLocation = null;
+            if(marker) { userMap.removeLayer(marker); marker = null; }
+            showToast('Incident reported successfully!', 'success');
+            renderUserIncidents();
+        }
+        
+        function renderUserIncidents() {
+            const listEl = document.getElementById('userIncidentList');
+            const userIncidents = db.incidents.filter(inc => inc.reportedBy === currentUser.aadhar);
+            if (userIncidents.length === 0) { 
+                listEl.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+                        <i class="fas fa-clipboard-list text-4xl text-slate-300 mb-3"></i>
+                        <p class="text-slate-500">No incidents reported yet.</p>
+                    </div>`; 
+                return; 
+            }
+            
+            listEl.innerHTML = userIncidents.map(inc => {
+                let statusColor = inc.status === 'RESOLVED' ? 'bg-green-100 text-green-700 ring-green-600/20' : 
+                                  inc.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700 ring-amber-600/20' : 
+                                  'bg-red-100 text-red-700 ring-red-600/20';
+                let statusText = inc.status.replace('_', ' ');
+                
+                return `
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${statusColor}">
+                                ${statusText}
+                            </span>
+                            <h3 class="text-lg font-bold text-slate-800 mt-2 capitalize">${inc.type} Incident</h3>
+                        </div>
+                        <span class="text-xs text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-100">${inc.id.slice(-6)}</span>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <p class="text-slate-600 text-sm leading-relaxed">${inc.description}</p>
+                        
+                        <div class="flex items-center text-xs text-slate-500 gap-4">
+                            <div class="flex items-center gap-1.5">
+                                <i class="fas fa-map-marker-alt text-slate-400"></i>
+                                ${inc.location}
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i class="far fa-clock text-slate-400"></i>
+                                ${new Date(inc.createdAt).toLocaleString()}
+                            </div>
+                        </div>
+                        
+                        <div class="pt-3 border-t border-slate-100">
+                            <p class="text-[10px] uppercase font-bold text-slate-400 mb-2">Emergency Services Status</p>
+                            <div class="flex gap-2">
+                                ${inc.notified.police ? `<span class="text-[10px] flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"><i class="fas fa-check text-[8px]"></i> Police</span>` : `<span class="text-[10px] text-slate-400 px-2 py-1">Police</span>`}
+                                ${inc.notified.ambulance ? `<span class="text-[10px] flex items-center gap-1 bg-red-50 text-red-700 px-2 py-1 rounded border border-red-100"><i class="fas fa-check text-[8px]"></i> Ambulance</span>` : `<span class="text-[10px] text-slate-400 px-2 py-1">Ambulance</span>`}
+                                ${inc.notified.firestation ? `<span class="text-[10px] flex items-center gap-1 bg-orange-50 text-orange-700 px-2 py-1 rounded border border-orange-100"><i class="fas fa-check text-[8px]"></i> Fire</span>` : `<span class="text-[10px] text-slate-400 px-2 py-1">Fire</span>`}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function renderResponderIncidents() {
+            const filterType = document.getElementById('filterType').value;
+            const filterStatus = document.getElementById('filterStatus').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const placeFilter = document.getElementById('placeFilter').value.toLowerCase();
+            
+            const filtered = db.incidents.filter(inc => {
+                const typeMatch = filterType === 'alltypes' || inc.type === filterType;
+                const statusMatch = filterStatus === 'allstatuses' || inc.status === filterStatus;
+                const dateMatch = !dateFilter || new Date(inc.createdAt).toISOString().split('T')[0] === dateFilter;
+                const placeMatch = !placeFilter || (inc.location && inc.location.toLowerCase().includes(placeFilter));
+                return typeMatch && statusMatch && dateMatch && placeMatch;
+            });
+            
+            const listEl = document.getElementById('responderIncidentList');
+            if (filtered.length === 0) { 
+                listEl.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">No incidents match your current filters.</div>'; 
+                return; 
+            }
+
+            listEl.innerHTML = filtered.map(inc => {
+                const statusColor = inc.status === 'RESOLVED' ? 'bg-green-500' : inc.status === 'IN_PROGRESS' ? 'bg-amber-500' : 'bg-red-500';
+                return `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col justify-between hover:shadow-md transition-all group">
+                    <div class="cursor-pointer" onclick="focusOnIncident('${inc.id}')">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full ${statusColor} animate-pulse"></div>
+                                <h3 class="font-bold text-slate-800 capitalize">${inc.type}</h3>
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-100">${inc.id.slice(-6)}</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3 line-clamp-2">${inc.description}</p>
+                        <div class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                            <i class="fas fa-map-marker-alt text-teal-600"></i>
+                            <span class="truncate">${inc.location}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400">${new Date(inc.createdAt).toLocaleString()}</div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <div class="grid grid-cols-1 gap-2">
+                            <label class="text-[10px] uppercase font-bold text-slate-400">Update Status</label>
+                            <select onchange="updateIncidentStatus('${inc.id}', this.value)" class="w-full text-xs bg-slate-50 border border-slate-200 rounded p-1.5 focus:ring-1 focus:ring-teal-500">
+                                <option value="OPEN" ${inc.status === 'OPEN' ? 'selected' : ''}>Open</option>
+                                <option value="IN_PROGRESS" ${inc.status === 'IN_PROGRESS' ? 'selected' : ''}>In Progress</option>
+                                <option value="RESOLVED" ${inc.status === 'RESOLVED' ? 'selected' : ''}>Resolved</option>
+                            </select>
+                            
+                            <div class="grid grid-cols-3 gap-2 mt-1">
+                                <button onclick="event.stopPropagation(); notifyService('${inc.id}', 'police')" class="text-[10px] py-1.5 rounded border transition-colors flex items-center justify-center gap-1 ${inc.notified.police ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+                                    <i class="fas fa-shield-alt"></i> ${inc.notified.police ? 'Sent' : 'Police'}
+                                </button>
+                                <button onclick="event.stopPropagation(); notifyService('${inc.id}', 'ambulance')" class="text-[10px] py-1.5 rounded border transition-colors flex items-center justify-center gap-1 ${inc.notified.ambulance ? 'bg-red-50 text-red-600 border-red-100' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+                                    <i class="fas fa-ambulance"></i> ${inc.notified.ambulance ? 'Sent' : 'EMS'}
+                                </button>
+                                <button onclick="event.stopPropagation(); notifyService('${inc.id}', 'firestation')" class="text-[10px] py-1.5 rounded border transition-colors flex items-center justify-center gap-1 ${inc.notified.firestation ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+                                    <i class="fas fa-fire-extinguisher"></i> ${inc.notified.firestation ? 'Sent' : 'Fire'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function renderResponderReports() {
+            const dateFrom = document.getElementById('reportDateFrom').value;
+            const dateTo = document.getElementById('reportDateTo').value;
+            const typeFilter = document.getElementById('reportTypeFilter').value;
+            
+            const filtered = db.incidents.filter(inc => {
+                const incidentDate = new Date(inc.createdAt).toISOString().split('T')[0];
+                const dateMatch = (!dateFrom || incidentDate >= dateFrom) && (!dateTo || incidentDate <= dateTo);
+                const typeMatch = typeFilter === 'alltypes' || inc.type === typeFilter;
+                return dateMatch && typeMatch;
+            });
+            
+            const tbody = document.getElementById('reportsTableBody');
+            tbody.innerHTML = filtered.map(inc => `
+                <tr class="bg-white border-b hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-mono text-xs">${inc.id.slice(-8)}</td>
+                    <td class="px-6 py-4">${new Date(inc.createdAt).toLocaleDateString()}</td>
+                    <td class="px-6 py-4 capitalize">${inc.type}</td>
+                    <td class="px-6 py-4">
+                        <span class="${inc.status === 'RESOLVED' ? 'text-green-600' : inc.status === 'IN_PROGRESS' ? 'text-amber-600' : 'text-red-600'} font-medium text-xs uppercase">
+                            ${inc.status.replace('_', ' ')}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">${inc.reportedBy}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="focusOnIncident('${inc.id}')" class="text-teal-600 hover:text-teal-800 text-xs font-bold">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPublicIncidents() {
+            const filterType = document.getElementById('publicFilterType').value;
+            const filterStatus = document.getElementById('publicFilterStatus').value;
+            
+            const filtered = db.incidents.filter(inc => {
+                const typeMatch = filterType === 'alltypes' || inc.type === filterType;
+                const statusMatch = filterStatus === 'allstatuses' || inc.status === filterStatus;
+                return typeMatch && statusMatch;
+            });
+            
+            const listEl = document.getElementById('publicIncidentList');
+            if (filtered.length === 0) { 
+                listEl.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">No incidents found in this area.</div>'; 
+                return; 
+            }
+            
+            listEl.innerHTML = filtered.map(inc => `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all cursor-pointer group" onclick="focusOnPublicIncident('${inc.id}')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${inc.status === 'RESOLVED' ? 'bg-green-500' : inc.status === 'IN_PROGRESS' ? 'bg-amber-500' : 'bg-red-500'}"></span>
+                            <h3 class="font-bold text-slate-800 capitalize text-sm">${inc.type}</h3>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full border ${inc.status === 'RESOLVED' ? 'bg-green-50 text-green-700 border-green-100' : inc.status === 'IN_PROGRESS' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100'}">
+                            ${inc.status.replace('_', ' ')}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-2 truncate group-hover:text-slate-700">${inc.description}</p>
+                    <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span class="truncate">${inc.location}</span>
+                        <span class="mx-1">•</span>
+                        <span>${new Date(inc.createdAt).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateIncidentStatus(id, newStatus) { 
+            const inc = db.incidents.find(i => i.id === id); 
+            if (inc) { 
+                inc.status = newStatus; 
+                saveDB(); 
+                showToast(`Status updated to ${newStatus}`, 'info');
+                renderResponderIncidents(); 
+                renderResponderReports(); 
+                if (responderMap) updateResponderMap();
+                if(document.getElementById('analytics').classList.contains('active')) updateAnalytics();
+            } 
+        }
+
+        function notifyService(incidentId, service) {
+            const incident = db.incidents.find(i => i.id === incidentId);
+            if (incident && !incident.notified[service]) {
+                incident.notified[service] = true;
+                saveDB();
+                const serviceName = service.replace('firestation', 'Fire Station');
+                showToast(`Dispatch sent to ${serviceName}`, 'success');
+                renderResponderIncidents();
+            } else if (incident && incident.notified[service]) {
+                showToast(`${service} already notified`, 'warning');
+            }
+        }
+
+        // --- PROFILE LOGIC (UPDATED) ---
+        function showProfileModal(role) {
+            const modal = document.getElementById('profileModal');
+            const title = document.getElementById('profileModalTitle');
+            const userFields = document.getElementById('userProfileFields');
+            const responderFields = document.getElementById('responderProfileFields');
+            
+            userFields.classList.add('hidden');
+            responderFields.classList.add('hidden');
+            
+            if (role === 'user') {
+                title.textContent = 'My Profile';
+                title.className = 'text-2xl font-bold text-blue-600';
+                userFields.classList.remove('hidden');
+                const user = db.users.find(u => u.aadhar === currentUser.aadhar);
+                document.getElementById('modalProfileAadhar').value = user.aadhar;
+                document.getElementById('modalProfileName').value = user.name;
+                document.getElementById('modalProfilePhone').value = user.phone;
+                document.getElementById('modalProfilePassword').value = '';
+            } else if (role === 'responder') {
+                title.textContent = 'Officer Profile';
+                title.className = 'text-2xl font-bold text-teal-700';
+                responderFields.classList.remove('hidden');
+                
+                // FIX: Find responder and verify existence before accessing properties to prevent crash
+                const responder = db.responders.find(r => r.userId == currentUser.userId); // Using == for loose equality (string/number)
+                
+                if (!responder) {
+                    showToast('Error: Responder data not found. Please re-login.', 'error');
+                    console.error('Responder not found in DB for userId:', currentUser.userId);
+                    return; 
+                }
+
+                document.getElementById('modalProfileResponderId').value = responder.userId;
+                document.getElementById('modalProfileResponderName').value = responder.name || '';
+                document.getElementById('modalProfileResponderPhone').value = responder.phone || '';
+                // Handle new fields safely with fallback to empty string
+                document.getElementById('modalProfileBadge').value = responder.badgeNumber || '';
+                document.getElementById('modalProfileStation').value = responder.station || '';
+                document.getElementById('modalProfileResponderPassword').value = '';
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+        
+        function handleProfileUpdate(event) {
+            event.preventDefault();
+            let userToUpdate, index;
+            
+            if (document.getElementById('userProfileFields').classList.contains('hidden') === false) {
+                const aadhar = document.getElementById('modalProfileAadhar').value;
+                index = db.users.findIndex(u => u.aadhar === aadhar);
+                userToUpdate = db.users[index];
+                userToUpdate.name = document.getElementById('modalProfileName').value;
+                userToUpdate.phone = document.getElementById('modalProfilePhone').value;
+                if (document.getElementById('modalProfilePassword').value) userToUpdate.password = document.getElementById('modalProfilePassword').value;
+                currentUser.name = userToUpdate.name;
+            } else {
+                const userId = document.getElementById('modalProfileResponderId').value;
+                index = db.responders.findIndex(r => r.userId == userId); // Loose match
+                
+                if(index === -1) {
+                    showToast('Error updating profile: User not found.', 'error');
+                    return;
+                }
+                
+                userToUpdate = db.responders[index];
+                userToUpdate.name = document.getElementById('modalProfileResponderName').value;
+                userToUpdate.phone = document.getElementById('modalProfileResponderPhone').value;
+                // Save new fields
+                userToUpdate.badgeNumber = document.getElementById('modalProfileBadge').value;
+                userToUpdate.station = document.getElementById('modalProfileStation').value;
+                
+                if (document.getElementById('modalProfileResponderPassword').value) userToUpdate.password = document.getElementById('modalProfileResponderPassword').value;
+                
+                // FIXED: Update current user session object AND DOM elements immediately
+                currentUser.name = userToUpdate.name;
+                currentUser.badgeNumber = userToUpdate.badgeNumber; 
+                currentUser.station = userToUpdate.station;
+
+                // Update Header DOM elements instantly so user sees the change
+                document.getElementById('responderDropdownName').textContent = currentUser.name;
+                document.getElementById('responderDropdownBadge').textContent = currentUser.badgeNumber || 'No Badge';
+                document.getElementById('responderProfileUserName').textContent = currentUser.name;
+            }
+            
+            saveDB();
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: currentUser, role: userRole }));
+            showToast('Profile updated successfully!', 'success');
+            closeProfileModal();
+            // Note: showDashboard() is not called here to prevent reloading the map/page unnecessarily
+        }
+
+        // --- MEDIA HANDLING ---
+        function handleImageSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    mediaFiles.push({ name: file.name, type: file.type, url: e.target.result, category: 'image' });
+                    showToast(`${file.name} added`, 'info');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        function handleVideoSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    mediaFiles.push({ name: file.name, type: file.type, url: e.target.result, category: 'video' });
+                    showToast(`${file.name} added`, 'info');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        function handleAudioSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    mediaFiles.push({ name: file.name, type: file.type, url: e.target.result, category: 'audio' });
+                    showToast(`${file.name} added`, 'info');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // --- TAB LOGIC ---
+        function showResponderTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active', 'border-teal-600', 'text-teal-600');
+                btn.classList.add('border-transparent');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            const activeBtn = document.getElementById(tabName + 'Tab');
+            activeBtn.classList.add('active', 'border-teal-600', 'text-teal-600');
+            activeBtn.classList.remove('border-transparent');
+            
+            if (tabName === 'reports') renderResponderReports();
+            else if (tabName === 'map') setTimeout(() => initResponderMap(), 200);
+            else if (tabName === 'analytics') updateAnalytics();
+        }
+        
+        // --- DROPDOWN LOGIC ---
+        function toggleProfileDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId || 'profileDropdown');
+            const isHidden = dropdown.classList.contains('hidden');
+            document.querySelectorAll('[id$="ProfileDropdown"]').forEach(d => d.classList.add('hidden'));
+            if(isHidden) dropdown.classList.remove('hidden');
+        }
+        
+        window.onclick = function(event) {
+            if (!event.target.closest('#user-menu-button') && !event.target.closest('#responder-menu-button') && !event.target.closest('[id$="ProfileDropdown"]')) {
+                document.querySelectorAll('[id$="ProfileDropdown"]').forEach(dropdown => dropdown.classList.add('hidden'));
+            }
+        }
+        
+        // --- MAP FUNCTIONS ---
+        function initUserMap() {
+            if (!userMap) {
+                userMap = L.map('userMap').setView([28.6139, 77.2090], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(userMap);
+                userMap.on('click', function(e) { setMarker(e.latlng); });
+            }
+            if (marker) { userMap.removeLayer(marker); marker = null; }
+        }
+        
+        function initResponderMap() {
+            const mapContainer = document.getElementById('responderMap');
+            if (!mapContainer._leaflet_id) {
+                responderMap = L.map('responderMap').setView([28.6139, 77.2090], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(responderMap);
+            }
+            updateResponderMap();
+        }
+        
+        function updateResponderMap() {
+            responderMarkers.forEach(marker => responderMap.removeLayer(marker));
+            responderMarkers = [];
+            
+            const filterType = document.getElementById('mapFilterType').value;
+            const filterStatus = document.getElementById('mapFilterStatus').value;
+            
+            db.incidents.forEach(inc => {
+                const typeMatch = filterType === 'alltypes' || inc.type === filterType;
+                const statusMatch = filterStatus === 'allstatuses' || inc.status === filterStatus;
+                
+                if (inc.coordinates && typeMatch && statusMatch) {
+                    const color = inc.status === 'RESOLVED' ? '#10b981' : inc.status === 'IN_PROGRESS' ? '#f59e0b' : '#ef4444';
+                    
+                    const circle = L.circleMarker([inc.coordinates.lat, inc.coordinates.lng], {
+                        radius: 10, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9
+                    }).addTo(responderMap);
+                    
+                    circle.bindPopup(`
+                        <div class="font-sans text-sm p-1">
+                            <h3 class="font-bold capitalize text-slate-800">${inc.type}</h3>
+                            <p class="text-slate-600 text-xs mb-1">${inc.description}</p>
+                            <div class="font-bold text-xs mb-1" style="color:${color}">${inc.status.replace('_', ' ')}</div>
+                            <p class="text-[10px] text-slate-400">${inc.location}</p>
+                        </div>
+                    `);
+                    responderMarkers.push(circle);
+                }
+            });
+        }
+        
+        function initPublicMap() {
+            const mapContainer = document.getElementById('publicMap');
+            if (!mapContainer._leaflet_id) {
+                publicMap = L.map('publicMap').setView([28.6139, 77.2090], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(publicMap);
+            }
+            
+            publicMap.eachLayer(layer => { if (layer instanceof L.CircleMarker) publicMap.removeLayer(layer); });
+            
+            const filterType = document.getElementById('publicFilterType').value;
+            const filterStatus = document.getElementById('publicFilterStatus').value;
+            
+            db.incidents.forEach(inc => {
+                const typeMatch = filterType === 'alltypes' || inc.type === filterType;
+                const statusMatch = filterStatus === 'allstatuses' || inc.status === filterStatus;
+                
+                if (inc.coordinates && typeMatch && statusMatch) {
+                    const color = inc.status === 'RESOLVED' ? '#10b981' : inc.status === 'IN_PROGRESS' ? '#f59e0b' : '#ef4444';
+                    L.circleMarker([inc.coordinates.lat, inc.coordinates.lng], {
+                        radius: 8, fillColor: color, color: '#fff', weight: 1, opacity: 1, fillOpacity: 0.8
+                    }).addTo(publicMap).bindPopup(`<b>${inc.type}</b><br>${inc.description}`);
+                }
+            });
+        }
+        
+        function setMarker(latlng) {
+            if (marker) userMap.removeLayer(marker);
+            marker = L.marker(latlng).addTo(userMap);
+            currentLocation = { lat: latlng.lat, lng: latlng.lng };
+            document.getElementById('locationInput').value = `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+        }
+        
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const latlng = L.latLng(position.coords.latitude, position.coords.longitude);
+                    userMap.setView(latlng, 16);
+                    setMarker(latlng);
+                    showToast('Location found', 'success');
+                }, function() { showToast('Geolocation failed', 'error'); });
+            } else { showToast('Browser unsupported', 'error'); }
+        }
+        
+        function focusOnIncident(incidentId) {
+            const inc = db.incidents.find(i => i.id === incidentId);
+            if (inc && inc.coordinates) {
+                showResponderTab('map');
+                setTimeout(() => {
+                    if (responderMap) {
+                        responderMap.setView([inc.coordinates.lat, inc.coordinates.lng], 15);
+                    }
+                }, 300);
+            }
+        }
+        
+        function focusOnPublicIncident(incidentId) {
+            const inc = db.incidents.find(i => i.id === incidentId);
+            if (inc && inc.coordinates && publicMap) {
+                publicMap.setView([inc.coordinates.lat, inc.coordinates.lng], 15);
+            }
+        }
+        
+        function applyMapFilters() { updateResponderMap(); }
+
+        // --- ANALYTICS LOGIC (NEW) ---
+        function updateAnalytics() {
+            // 1. Calculate KPI
+            const total = db.incidents.length;
+            const active = db.incidents.filter(i => i.status !== 'RESOLVED').length;
+            const fire = db.incidents.filter(i => i.type === 'fire').length;
+
+            document.getElementById('kpiTotal').textContent = total;
+            document.getElementById('kpiActive').textContent = active;
+            document.getElementById('kpiFire').textContent = fire;
+
+            // 2. Prepare Data for Charts
+            // Type Data
+            const types = {};
+            db.incidents.forEach(i => {
+                const t = i.type.replace('utilityissue', 'Utility').replace('_', ' ');
+                types[t] = (types[t] || 0) + 1;
+            });
+
+            // Status Data
+            const statuses = { Open: 0, In_Progress: 0, Resolved: 0 };
+            db.incidents.forEach(i => {
+                if (i.status === 'OPEN') statuses.Open++;
+                else if (i.status === 'IN_PROGRESS') statuses.In_Progress++;
+                else statuses.Resolved++;
+            });
+
+            // Trend Data (Hourly mock)
+            const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
+            const hourlyCounts = new Array(24).fill(0);
+            db.incidents.forEach(i => {
+                const hour = new Date(i.createdAt).getHours();
+                hourlyCounts[hour]++;
+            });
+
+            // 3. Render Charts
+            
+            // Destroy old charts if exist to prevent memory leaks / duplicates
+            if(typeChartInstance) typeChartInstance.destroy();
+            if(statusChartInstance) statusChartInstance.destroy();
+            if(trendChartInstance) trendChartInstance.destroy();
+
+            // Type Chart (Doughnut)
+            const ctxType = document.getElementById('typeChart').getContext('2d');
+            typeChartInstance = new Chart(ctxType, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(types),
+                    datasets: [{
+                        data: Object.values(types),
+                        backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#6366f1'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // Status Chart (Bar)
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'bar',
+                data: {
+                    labels: ['Open', 'In Progress', 'Resolved'],
+                    datasets: [{
+                        label: 'Incidents',
+                        data: [statuses.Open, statuses.In_Progress, statuses.Resolved],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Trend Chart (Line)
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            trendChartInstance = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Incidents Reported',
+                        data: hourlyCounts,
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                        x: { ticks: { maxTicksLimit: 8 } } // Limit labels for cleanliness
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
