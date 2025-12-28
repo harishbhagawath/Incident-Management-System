@@ -57,7 +57,7 @@ This system enables:
 
 Incident-Management-System/
 │
-├── proj.html
+├── index.html
 └── README.md
 
 
@@ -70,4 +70,4 @@ Simply download or clone the project and open the HTML file:
 ```bash
 git clone https://github.com/<your-username>/Incident-Management-System.git
 cd Incident-Management-System
-open proj.html
+open index.html
